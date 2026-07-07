@@ -1,0 +1,23 @@
+name: Secret Scanning - Gitleaks
+
+on:
+  push:
+    branches: ["**"]  # Jalan di semua branch saat ada push
+  pull_request:
+    branches: ["main"]  # Jalan saat PR ke main
+
+jobs:
+  gitleaks:
+    name: Detect Secrets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history, bukan hanya latest commit
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
