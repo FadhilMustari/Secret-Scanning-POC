@@ -50,4 +50,5 @@ func main() {
 
 
 // TEST ONLY - intentional fake secret to verify gitleaks detection, do not use in real code
-const testAWSAccessKey = "AKIAIOSFODNN7EXAMPLE"
+const testAWSAccessKey = "AKIAZ3X9K2M7QLPT4RDS"
+const testAWSSecretKey = "wJalrXUtnFEMI/K7MDENG/bPxRfi7HL3q9mZ2vBn"
