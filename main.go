@@ -48,3 +48,6 @@ func main() {
 	}
 }
 
+
+// TEST ONLY - intentional fake secret to verify gitleaks detection, do not use in real code
+const testAWSAccessKey = "AKIAIOSFODNN7EXAMPLE"
