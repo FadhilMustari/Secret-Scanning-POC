@@ -1,23 +1,90 @@
-name: Secret Scanning - Gitleaks
+name: DevSecOps Pipeline
 
+# Trigger: setiap PR ke master
 on:
-  push:
-    branches: ["**"]  # Jalan di semua branch saat ada push
   pull_request:
-    branches: ["main"]  # Jalan saat PR ke main
+    branches:
+      - main
+
+# Kalau ada commit baru di PR yang sama, cancel run yang lama
+concurrency:
+  group: devsecops-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  gitleaks:
-    name: Detect Secrets
-    runs-on: ubuntu-latest
 
+  # ─────────────────────────────────────────
+  # Job 1: Secret Scanning (Gitleaks)
+  # Policy: HARD-BLOCK dari hari 1
+  # ─────────────────────────────────────────
+  secret-scan:
+    name: Secret Scan (Gitleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history, bukan hanya latest commit
+          fetch-depth: 0  # full history, biar Gitleaks bisa scan seluruh commit di PR
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Default gitleaks-action akan fail job kalau ada finding -> hard-block otomatis
+
+  # ─────────────────────────────────────────
+  # Job 2: SCA - Go dependency vulnerability (govulncheck)
+  # Policy: REPORT-ONLY (minggu 1-4), lalu ganti ke hard-block
+  # ─────────────────────────────────────────
+  sca:
+    name: SCA (govulncheck)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'  # fallback ke stable kalau belum ada go.mod
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        # TODO: ganti ke `continue-on-error: false` setelah masa baseline (target: minggu 5)
+        continue-on-error: true
+        run: govulncheck ./...
+
+  # ─────────────────────────────────────────
+  # Job 3: IaC / Dockerfile misconfiguration (Trivy config)
+  # Policy: REPORT-ONLY (minggu 1-4), lalu ganti ke hard-block
+  # Catatan: HANYA --scanners config, bukan vuln/secret
+  #          (vuln sudah di-cover govulncheck, secret sudah di-cover Gitleaks)
+  # ─────────────────────────────────────────
+  iac-scan:
+    name: IaC Scan (Trivy config)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@0.28.0
+        # TODO: ganti ke `continue-on-error: false` setelah masa baseline (target: minggu 5)
+        continue-on-error: true
+        with:
+          scan-type: 'config'
+          scanners: 'config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'          # exit-code 1 kalau ada finding (efektif jika continue-on-error: false)
+          severity: 'CRITICAL,HIGH'
