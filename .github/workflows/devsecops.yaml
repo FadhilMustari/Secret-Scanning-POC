@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Secret Scan (Gitleaks)
+      - name: Secret Scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -37,11 +37,11 @@ jobs:
         if: always()
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
 
-      - name: SCA (govulncheck)
+      - name: SCA
         if: always()
         run: govulncheck ./...
 
-      - name: IaC Scan (Trivy config)
+      - name: IaC Scan
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
