@@ -27,19 +27,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Go
-        if: always()
-        uses: actions/setup-go@v5
-        with:
-          go-version: 'stable'
-
-      - name: Install govulncheck
-        if: always()
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
       - name: SCA
         if: always()
-        run: govulncheck ./...
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          vuln-type: 'os,library'
+          format: 'json'
+          output: 'trivy-sca-results.json'
+          exit-code: '0'
+
+      - name: Upload SCA results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-sca-results
+          path: trivy-sca-results.json
 
       - name: IaC Scan
         if: always()
