@@ -4,7 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+
+	"golang.org/x/text/language"
 )
+
+// TEST ONLY - deliberately calls a vulnerable golang.org/x/text function
+// (GO-2022-1059) to verify the SCA (govulncheck) step in the DevSecOps pipeline.
+func parseAcceptLanguage(header string) ([]language.Tag, []float32, error) {
+	return language.ParseAcceptLanguage(header)
+}
 
 // Config loads credentials from environment variables (bukan hardcode!)
 type Config struct {
@@ -24,6 +32,9 @@ func loadConfig() Config {
 }
 
 func healthCheck(w http.ResponseWriter, r *http.Request) {
+	if _, _, err := parseAcceptLanguage(r.Header.Get("Accept-Language")); err != nil {
+		fmt.Fprintln(os.Stderr, "language parse error:", err)
+	}
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, `{"status": "ok"}`)
 }
