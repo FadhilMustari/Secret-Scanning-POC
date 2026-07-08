@@ -1,0 +1,53 @@
+name: DevSecOps Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: devsecops-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  devsecops:
+    name: DevSecOps Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        if: always()
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Install govulncheck
+        if: always()
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: SCA
+        if: always()
+        run: govulncheck ./...
+
+      - name: IaC Scan
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'config'
+          scanners: 'config'
+          scan-ref: '.'
+          format: 'table'
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
