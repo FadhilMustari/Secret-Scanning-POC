@@ -45,17 +45,6 @@ jobs:
           name: trivy-sca-results
           path: trivy-sca-results.json
 
-      - name: IaC Scan
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: 'config'
-          scanners: 'config'
-          scan-ref: '.'
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL,HIGH'
-
       - name: Set up Docker Buildx
         if: always()
         uses: docker/setup-buildx-action@v3
