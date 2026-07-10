@@ -1,0 +1,7 @@
+title = "Gitleaks Config"
+
+[allowlist]
+  description = "Allowlist for intentional vulnerability commits used in SonarQube/DevSecOps PoC testing"
+  commits = [
+    "d1818d102c21ab78e5825b48785d037acd3dfa79", # feat: add vulnerable dummy app for SonarQube testing (intentional)
+  ]
