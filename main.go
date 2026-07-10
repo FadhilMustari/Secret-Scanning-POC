@@ -14,6 +14,13 @@ import (
 	"time"
 )
 
+// ✅ FIX [S2192]: Define constants for repeated string literals
+const (
+	headerContentType = "Content-Type"
+	contentTypeJSON    = "application/json"
+	contentTypeHTML    = "text/html; charset=utf-8"
+)
+
 // ✅ FIX [S2068 / S6702]: Load all credentials from environment variables — no hardcoding
 type Config struct {
 	AdminAPIKey string
@@ -111,7 +118,7 @@ func authMiddleware(next http.HandlerFunc, cfg Config) http.HandlerFunc {
 func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
 	targetKey := r.URL.Query().Get("target")
 	if targetKey == "" {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentType, contentTypeJSON)
 		allowed := make([]string, 0, len(allowedDiagnosticTargets))
 		for k := range allowedDiagnosticTargets {
 			allowed = append(allowed, k)
@@ -147,7 +154,7 @@ func diagnosticHandler(w http.ResponseWriter, r *http.Request) {
 func fetchURLHandler(w http.ResponseWriter, r *http.Request) {
 	serviceKey := r.URL.Query().Get("service")
 	if serviceKey == "" {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentType, contentTypeJSON)
 		allowed := make([]string, 0, len(allowedServices))
 		for k := range allowedServices {
 			allowed = append(allowed, k)
@@ -186,7 +193,7 @@ func fetchURLHandler(w http.ResponseWriter, r *http.Request) {
 func fileReadHandler(w http.ResponseWriter, r *http.Request) {
 	fileKey := r.URL.Query().Get("name")
 	if fileKey == "" {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set(headerContentType, contentTypeJSON)
 		allowed := make([]string, 0, len(allowedFiles))
 		for k := range allowedFiles {
 			allowed = append(allowed, k)
@@ -227,7 +234,7 @@ var searchTemplate = template.Must(template.New("search").Parse(`<!DOCTYPE html>
 
 func searchHandler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query().Get("q")
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set(headerContentType, contentTypeHTML)
 	searchTemplate.Execute(w, struct{ Query string }{Query: query}) //nolint:errcheck
 }
 
@@ -269,7 +276,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   3600,
 	})
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(headerContentType, contentTypeJSON)
 	fmt.Fprintf(w, `{"status": "ok", "user": "%s"}`, username)
 }
 
@@ -289,7 +296,7 @@ func adminDeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	delete(userHashes, userID)
 	delete(userSalts, userID)
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(headerContentType, contentTypeJSON)
 	fmt.Fprint(w, `{"message": "User deleted successfully"}`)
 }
 
@@ -310,7 +317,7 @@ func resetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	// ✅ OTP dispatched via email in production — never logged, never returned in response
 	_ = otp // replace with: emailService.Send(email, otp)
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(headerContentType, contentTypeJSON)
 	fmt.Fprint(w, `{"message": "If the email exists, a reset link has been sent"}`)
 }
 
@@ -320,7 +327,7 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		"status":  "ok",
 		"version": "1.0.0",
 	}
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set(headerContentType, contentTypeJSON)
 	json.NewEncoder(w).Encode(info) //nolint:errcheck
 }
 
