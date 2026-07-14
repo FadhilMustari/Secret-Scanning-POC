@@ -75,7 +75,23 @@ jobs:
         with:
           name: trivy-image-results
           path: trivy-image-results.json
-      
+
+      - name: Generate SBOM
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'image'
+          image-ref: 'devsecops-poc:${{ github.sha }}'
+          format: 'cyclonedx'
+          output: 'sbom.cyclonedx.json'
+
+      - name: Upload SBOM
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cyclonedx.json
+
       - name: SonarQube Scan
         if: always()
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995  # v8.1.0
