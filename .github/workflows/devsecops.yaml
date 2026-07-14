@@ -34,16 +34,16 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           vuln-type: 'os,library'
-          format: 'json'
-          output: 'trivy-sca-results.json'
+          format: 'sarif'
+          output: 'trivy-sca-results.sarif'
           exit-code: '0'
 
-      - name: Upload SCA results
+      - name: Upload SCA results to Security tab
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: trivy-sca-results
-          path: trivy-sca-results.json
+          sarif_file: trivy-sca-results.sarif
+          category: trivy-sca
 
       - name: Set up Docker Buildx
         if: always()
@@ -65,16 +65,16 @@ jobs:
           scan-type: 'image'
           image-ref: 'devsecops-poc:${{ github.sha }}'
           vuln-type: 'os,library'
-          format: 'json'
-          output: 'trivy-image-results.json'
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
           exit-code: '0'
 
-      - name: Upload Image Scan results
+      - name: Upload Image Scan results to Security tab
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          name: trivy-image-results
-          path: trivy-image-results.json
+          sarif_file: trivy-image-results.sarif
+          category: trivy-image
 
       - name: Generate SBOM
         if: always()
