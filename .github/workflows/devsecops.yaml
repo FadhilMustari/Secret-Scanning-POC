@@ -115,7 +115,7 @@ jobs:
               echo ""
 
               if [ ! -s "$file" ]; then
-                echo "_No report generated._"
+                echo "_No scan report available._"
                 echo ""
                 return
               fi
@@ -123,7 +123,7 @@ jobs:
               total=$(jq '[.Results[]?.Vulnerabilities[]?] | length' "$file")
 
               if [ "$total" -eq 0 ]; then
-                echo "No vulnerabilities found ✅"
+                echo "No vulnerabilities detected ✅"
                 echo ""
                 return
               fi
@@ -137,9 +137,9 @@ jobs:
               echo ""
               echo "**Total: ${total} vulnerabilities**"
               echo ""
-              echo "<details><summary>Lihat detail CVE (maks ${max_rows} baris pertama)</summary>"
+              echo "<details><summary>View CVE details (showing up to ${max_rows} entries)</summary>"
               echo ""
-              echo "| Severity | Package | Installed | Fixed | CVE | Title |"
+              echo "| Severity | Package | Installed | Fixed | CVE | Description |"
               echo "|---|---|---|---|---|---|"
               jq -r --argjson max "$max_rows" '
                 [.Results[]?.Vulnerabilities[]?]
@@ -149,7 +149,7 @@ jobs:
               ' "$file"
               echo ""
               if [ "$total" -gt "$max_rows" ]; then
-                echo "_menampilkan ${max_rows} dari ${total} total temuan, daftar lengkap ada di tab **Security → Code scanning**._"
+                echo "_Showing the first ${max_rows} of ${total} findings. The complete list is available under the **Security → Code scanning** tab._"
                 echo ""
               fi
               echo "</details>"
@@ -158,11 +158,11 @@ jobs:
           }
 
           {
-            echo "## 🔎 Trivy Vulnerability Scan Summary"
+            echo "## 🔎 Vulnerability Scan Summary (Trivy)"
             echo ""
           } >> "$GITHUB_STEP_SUMMARY"
 
-          write_scan_summary "📚 SCA (Dependency) Scan" "trivy-sca-results.json"
+          write_scan_summary "📚 SCA — Dependency Scan" "trivy-sca-results.json"
           write_scan_summary "🖼️ Container Image Scan" "trivy-image-results.json"
 
       - name: Generate SBOM
@@ -189,11 +189,11 @@ jobs:
           file="sbom.cyclonedx.json"
 
           {
-            echo "## 📦 SBOM Summary"
+            echo "## 📦 Software Bill of Materials (SBOM) Summary"
             echo ""
 
             if [ ! -s "$file" ]; then
-              echo "_No SBOM generated._"
+              echo "_No SBOM report available._"
             else
               total=$(jq '.components | length' "$file")
               echo "**Total components: ${total}**"
@@ -209,7 +209,7 @@ jobs:
                 | "| \(.type) | \(.count) |"
               ' "$file"
               echo ""
-              echo "<details><summary>Lihat semua komponen (maks 200 baris)</summary>"
+              echo "<details><summary>View all components (showing up to 200 entries)</summary>"
               echo ""
               echo "| Name | Version | Type |"
               echo "|---|---|---|"
@@ -219,7 +219,7 @@ jobs:
               ' "$file"
               echo ""
               if [ "$total" -gt 200 ]; then
-                echo "_menampilkan 200 dari ${total} komponen, download artifact **sbom-cyclonedx** untuk daftar lengkap._"
+                echo "_Showing the first 200 of ${total} components. Download the **sbom-cyclonedx** artifact for the complete inventory._"
                 echo ""
               fi
               echo "</details>"
