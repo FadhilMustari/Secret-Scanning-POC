@@ -34,24 +34,6 @@ jobs:
           scan-type: fs
           scan-ref: .
           vuln-type: os,library
-          format: sarif
-          output: trivy-sca-results.sarif
-          exit-code: '0'
-
-      - name: SCA — Upload to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-sca-results.sarif
-          category: trivy-sca
-
-      - name: SCA — JSON
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          vuln-type: os,library
           format: json
           output: trivy-sca-results.json
           exit-code: '0'
@@ -68,24 +50,6 @@ jobs:
           push: false
           load: true
           tags: devsecops-poc:${{ github.sha }}
-
-      - name: Image Scan
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: image
-          image-ref: devsecops-poc:${{ github.sha }}
-          vuln-type: os,library
-          format: sarif
-          output: trivy-image-results.sarif
-          exit-code: '0'
-
-      - name: Image Scan — Upload to Security tab
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-image-results.sarif
-          category: trivy-image
 
       - name: Image Scan
         if: always()
