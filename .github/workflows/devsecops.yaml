@@ -45,6 +45,17 @@ jobs:
           sarif_file: trivy-sca-results.sarif
           category: trivy-sca
 
+      - name: SCA (JSON report for summary)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          vuln-type: 'os,library'
+          format: 'json'
+          output: 'trivy-sca-results.json'
+          exit-code: '0'
+
       - name: Set up Docker Buildx
         if: always()
         uses: docker/setup-buildx-action@v3
@@ -76,6 +87,84 @@ jobs:
           sarif_file: trivy-image-results.sarif
           category: trivy-image
 
+      - name: Image Scan (JSON report for summary)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'image'
+          image-ref: 'devsecops-poc:${{ github.sha }}'
+          vuln-type: 'os,library'
+          format: 'json'
+          output: 'trivy-image-results.json'
+          exit-code: '0'
+
+      - name: Trivy Scan Summary
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          write_scan_summary() {
+            local title="$1"
+            local file="$2"
+            local max_rows=50
+            local total
+
+            {
+              echo "### ${title}"
+              echo ""
+
+              if [ ! -s "$file" ]; then
+                echo "_No scan report available._"
+                echo ""
+                return
+              fi
+
+              total=$(jq '[.Results[]?.Vulnerabilities[]?] | length' "$file")
+
+              if [ "$total" -eq 0 ]; then
+                echo "No vulnerabilities detected ✅"
+                echo ""
+                return
+              fi
+
+              echo "| Severity | Count |"
+              echo "|---|---|"
+              for sev in CRITICAL HIGH MEDIUM LOW UNKNOWN; do
+                count=$(jq --arg sev "$sev" '[.Results[]?.Vulnerabilities[]? | select(.Severity==$sev)] | length' "$file")
+                [ "$count" -gt 0 ] && echo "| $sev | $count |"
+              done
+              echo ""
+              echo "**Total: ${total} vulnerabilities**"
+              echo ""
+              echo "<details><summary>View CVE details (showing up to ${max_rows} entries)</summary>"
+              echo ""
+              echo "| Severity | Package | Installed | Fixed | CVE | Description |"
+              echo "|---|---|---|---|---|---|"
+              jq -r --argjson max "$max_rows" '
+                [.Results[]?.Vulnerabilities[]?]
+                | sort_by(.Severity as $s | ({"CRITICAL":0,"HIGH":1,"MEDIUM":2,"LOW":3,"UNKNOWN":4}[$s] // 5))
+                | .[0:$max][]
+                | "| \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "-") | \(.VulnerabilityID) | \((.Title // "-") | gsub("\\|";"\\\\|") | gsub("\n";" ")) |"
+              ' "$file"
+              echo ""
+              if [ "$total" -gt "$max_rows" ]; then
+                echo "_Showing the first ${max_rows} of ${total} findings. The complete list is available under the **Security → Code scanning** tab._"
+                echo ""
+              fi
+              echo "</details>"
+              echo ""
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          {
+            echo "## 🔎 Vulnerability Scan Summary (Trivy)"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          write_scan_summary "📚 SCA — Dependency Scan" "trivy-sca-results.json"
+          write_scan_summary "🖼️ Container Image Scan" "trivy-image-results.json"
+
       - name: Generate SBOM
         if: always()
         uses: aquasecurity/trivy-action@v0.36.0
@@ -91,6 +180,51 @@ jobs:
         with:
           name: sbom-cyclonedx
           path: sbom.cyclonedx.json
+
+      - name: SBOM Summary
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          file="sbom.cyclonedx.json"
+
+          {
+            echo "## 📦 Software Bill of Materials (SBOM) Summary"
+            echo ""
+
+            if [ ! -s "$file" ]; then
+              echo "_No SBOM report available._"
+            else
+              total=$(jq '.components | length' "$file")
+              echo "**Total components: ${total}**"
+              echo ""
+              echo "| Ecosystem | Count |"
+              echo "|---|---|"
+              jq -r '
+                [.components[]? | (.purl // "pkg:unknown/") | capture("^pkg:(?<type>[a-zA-Z0-9.+-]+)/").type]
+                | group_by(.)
+                | map({type: .[0], count: length})
+                | sort_by(-.count)
+                | .[]
+                | "| \(.type) | \(.count) |"
+              ' "$file"
+              echo ""
+              echo "<details><summary>View all components (showing up to 200 entries)</summary>"
+              echo ""
+              echo "| Name | Version | Type |"
+              echo "|---|---|---|"
+              jq -r '
+                [.components[]?][0:200][]
+                | "| \(.name) | \(.version // "-") | \(.type // "-") |"
+              ' "$file"
+              echo ""
+              if [ "$total" -gt 200 ]; then
+                echo "_Showing the first 200 of ${total} components. Download the **sbom-cyclonedx** artifact for the complete inventory._"
+                echo ""
+              fi
+              echo "</details>"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: SonarQube Scan
         if: always()
