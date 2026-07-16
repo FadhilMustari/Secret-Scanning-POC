@@ -1,5 +1,29 @@
 title = "Gitleaks Config"
 
+# Custom rule: detect hardcoded JWT secrets by variable name context
+[[rules]]
+  id = "hardcoded-jwt-secret"
+  description = "Hardcoded JWT secret detected"
+  regex = '''(?i)(jwt[_-]?secret|jwt[_-]?key|signing[_-]?key)\s*=\s*["']([^"']{8,})["']'''
+  severity = "CRITICAL"
+  tags = ["secret", "jwt"]
+
+# Custom rule: detect hardcoded DB passwords by variable name context
+[[rules]]
+  id = "hardcoded-db-password"
+  description = "Hardcoded database password detected"
+  regex = '''(?i)(db[_-]?pass(word)?|database[_-]?pass(word)?|db[_-]?pwd)\s*=\s*["']([^"']{4,})["']'''
+  severity = "CRITICAL"
+  tags = ["secret", "database"]
+
+# Custom rule: detect generic hardcoded passwords by variable name
+[[rules]]
+  id = "hardcoded-password-variable"
+  description = "Hardcoded password in variable"
+  regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*["']([^"']{4,})["']'''
+  severity = "HIGH"
+  tags = ["secret", "password"]
+
 [allowlist]
   description = "Allowlist for intentional vulnerability commits used in SonarQube/DevSecOps PoC testing"
   commits = [
