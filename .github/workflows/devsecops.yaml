@@ -88,6 +88,36 @@ jobs:
         shell: bash
         run: bash .github/scripts/sbom-summary.sh
 
+      - name: Start app container for DAST
+        if: always()
+        shell: bash
+        run: |
+          docker run -d --name dast-target -p 8080:8080 devsecops-poc:${{ github.sha }}
+          echo "Waiting for app to become ready..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health >/dev/null; then
+              echo "App is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time."
+          docker logs dast-target || true
+          exit 1
+
+      - name: DAST (OWASP ZAP Baseline)
+        if: always()
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:8080
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Stop app container
+        if: always()
+        shell: bash
+        run: docker rm -f dast-target || true
+
       - name: SonarQube Scan
         if: always()
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995  # v8.1.0
