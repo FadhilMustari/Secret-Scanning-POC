@@ -22,6 +22,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare reports directory
+        if: always()
+        shell: bash
+        run: mkdir -p reports
+
       - name: Secret Scan
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -35,7 +40,7 @@ jobs:
           scan-ref: .
           vuln-type: os,library
           format: json
-          output: trivy-sca-results.json
+          output: reports/trivy-sca-results.json
           exit-code: '0'
 
       - name: Set up Docker Buildx
@@ -59,7 +64,7 @@ jobs:
           image-ref: devsecops-poc:${{ github.sha }}
           vuln-type: os,library
           format: json
-          output: trivy-image-results.json
+          output: reports/trivy-image-results.json
           exit-code: '0'
 
       - name: Trivy Scan Summary
@@ -74,19 +79,59 @@ jobs:
           scan-type: image
           image-ref: devsecops-poc:${{ github.sha }}
           format: cyclonedx
-          output: sbom.cyclonedx.json
+          output: reports/sbom.cyclonedx.json
 
       - name: Upload SBOM artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sbom-cyclonedx
-          path: sbom.cyclonedx.json
+          path: reports/sbom.cyclonedx.json
 
       - name: SBOM Summary
         if: always()
         shell: bash
         run: bash .github/scripts/sbom-summary.sh
+
+      - name: Start app container for DAST
+        if: always()
+        shell: bash
+        run: |
+          docker run -d --name dast-target -p 8080:8080 devsecops-poc:${{ github.sha }}
+          echo "Waiting for app to become ready..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8080/health >/dev/null; then
+              echo "App is ready."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "App did not become ready in time."
+          docker logs dast-target || true
+          exit 1
+
+      - name: DAST (OWASP ZAP Baseline)
+        if: always()
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://localhost:8080
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Stop app container
+        if: always()
+        shell: bash
+        run: docker rm -f dast-target || true
+
+      - name: Collect ZAP reports
+        if: always()
+        shell: bash
+        run: mv report_html.html report_json.json report_md.md reports/ 2>/dev/null || true
+
+      - name: DAST Summary
+        if: always()
+        shell: bash
+        run: bash .github/scripts/zap-summary.sh
 
       - name: SonarQube Scan
         if: always()
