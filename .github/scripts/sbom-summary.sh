@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-file="sbom.cyclonedx.json"
+file="reports/sbom.cyclonedx.json"
 
 {
   echo "### 📋 Software Inventory"

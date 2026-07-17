@@ -86,8 +86,8 @@ write_detail_table() {
 }
 
 # ── Collect overall status ────────────────────────────────────────────────────
-sca_file="trivy-sca-results.json"
-image_file="trivy-image-results.json"
+sca_file="reports/trivy-sca-results.json"
+image_file="reports/trivy-image-results.json"
 
 sca_total=0
 image_total=0
