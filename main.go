@@ -10,7 +10,6 @@ import (
 func main() {
 	mux := http.NewServeMux()
 
-	// Health endpoint dipakai pipeline untuk cek app sudah siap sebelum ZAP scan.
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "ok")
