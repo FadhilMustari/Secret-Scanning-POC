@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -21,9 +22,19 @@ func main() {
 		fmt.Fprintln(w, "Payment integration service is running.")
 	})
 
-	addr := ":8080"
-	log.Printf("listening on %s", addr)
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	// Timeout eksplisit: tanpa ini http.ListenAndServe rentan Slowloris DoS
+	// dan ditandai sebagai security hotspot oleh SonarQube.
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	log.Printf("listening on %s", srv.Addr)
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 }
