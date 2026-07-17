@@ -128,6 +128,11 @@ jobs:
         shell: bash
         run: mv report_html.html report_json.json report_md.md reports/ 2>/dev/null || true
 
+      - name: DAST Summary
+        if: always()
+        shell: bash
+        run: bash .github/scripts/zap-summary.sh
+
       - name: SonarQube Scan
         if: always()
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995  # v8.1.0
