@@ -28,6 +28,7 @@ jobs:
         run: mkdir -p reports
 
       - name: Secret Scan
+        id: secret_scan
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -141,8 +142,25 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
       - name: SonarQube Quality Gate Check
+        id: sonar_gate
         if: always()
         uses: SonarSource/sonarqube-quality-gate-action@cf038b0e0cdecfa9e56c198bbb7d21d751d62c3b  # v1.2.0
         timeout-minutes: 5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Consolidated Security Report
+        if: always()
+        shell: bash
+        env:
+          GITLEAKS_OUTCOME: ${{ steps.secret_scan.outcome }}
+          SONAR_GATE_OUTCOME: ${{ steps.sonar_gate.outcome }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: bash .github/scripts/consolidated-report.sh
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: reports/security-report.md
