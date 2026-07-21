@@ -163,7 +163,8 @@ jobs:
         shell: bash
         run: |
           if [ -f reports/security-report.md ]; then
-            npx --yes md-to-pdf reports/security-report.md
+            npx --yes md-to-pdf reports/security-report.md \
+              --launch-options '{"args":["--no-sandbox","--disable-setuid-sandbox"]}'
           else
             echo "No markdown report to convert."
           fi
