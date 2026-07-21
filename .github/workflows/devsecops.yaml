@@ -161,19 +161,25 @@ jobs:
       - name: Convert report to PDF
         if: always()
         shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           if [ -f reports/security-report.md ]; then
             npx --yes md-to-pdf reports/security-report.md \
               --launch-options '{"args":["--no-sandbox","--disable-setuid-sandbox"]}'
+            NAME="devsecops-report-pr${PR_NUMBER:-0}-${HEAD_SHA:0:7}"
+            mv reports/security-report.pdf "reports/${NAME}.pdf"
+            echo "REPORT_NAME=${NAME}" >> "$GITHUB_ENV"
           else
             echo "No markdown report to convert."
+            echo "REPORT_NAME=security-report" >> "$GITHUB_ENV"
           fi
 
       - name: Upload security report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-report
-          path: |
-            reports/security-report.pdf
-            reports/security-report.md
+          name: ${{ env.REPORT_NAME }}
+          path: reports/${{ env.REPORT_NAME }}.pdf
+          if-no-files-found: warn
