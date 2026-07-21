@@ -87,7 +87,7 @@ fi
       c=$(sev_count "$file" "$s"); [ "$c" -gt 0 ] && echo "| ${s} | ${c} |"
     done
     echo ""
-    echo "<details><summary>Critical & High findings</summary>"
+    echo "**Critical & High findings**"
     echo ""
     echo "| Severity | Package | Installed | Fixed | CVE |"
     echo "|---|---|---|---|---|"
@@ -97,8 +97,6 @@ fi
       | .[0:60][]
       | "| \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "—") | \(.VulnerabilityID) |"
     ' "$file"
-    echo ""
-    echo "</details>"
     echo ""
   done
 
