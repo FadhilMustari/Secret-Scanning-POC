@@ -1,8 +1,4 @@
-#!/usr/bin/env bash
 set -uo pipefail
-
-# Menggabungkan seluruh hasil scanner menjadi satu laporan Markdown.
-# Input file dari reports/, status Gitleaks & Sonar dari env (steps.*.outcome).
 
 OUT="reports/security-report.md"
 SCA="reports/trivy-sca-results.json"
@@ -14,7 +10,6 @@ ZAP="reports/report_json.json"
 : "${SONAR_GATE_OUTCOME:=unknown}"
 : "${PR_NUMBER:=n/a}"
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
 vuln_total() { [ -s "$1" ] && jq '[.Results[]?.Vulnerabilities[]?] | length' "$1" 2>/dev/null || echo 0; }
 sev_count()  { [ -s "$1" ] && jq --arg s "$2" '[.Results[]?.Vulnerabilities[]? | select(.Severity==$s)] | length' "$1" 2>/dev/null || echo 0; }
 
@@ -37,7 +32,6 @@ vuln_badge() {
   else echo "⚠️ ${total} findings"; fi
 }
 
-# ── Kalkulasi nilai ───────────────────────────────────────────────────────────
 gitleaks_badge=$(outcome_badge "$GITLEAKS_OUTCOME")
 sonar_badge=$(outcome_badge "$SONAR_GATE_OUTCOME")
 sca_badge=$(vuln_badge "$SCA")
@@ -56,7 +50,6 @@ if [ -s "$ZAP" ]; then
   else zap_badge="⚠️ ${zap_total} alert types"; fi
 fi
 
-# ── Tulis laporan ─────────────────────────────────────────────────────────────
 {
   echo "# 🛡️ DevSecOps Security Report"
   echo ""
@@ -79,7 +72,6 @@ fi
   echo "| 🔍 SAST + Quality Gate | SonarQube | ${sonar_badge} |"
   echo ""
 
-  # ── Trivy detail (Critical/High saja) ──
   for pair in "Dependency (SCA):$SCA" "Container Image:$IMAGE"; do
     label="${pair%%:*}"; file="${pair##*:}"
     echo "## 📦 Trivy — ${label}"
@@ -110,7 +102,6 @@ fi
     echo ""
   done
 
-  # ── ZAP detail ──
   echo "## 🕷️ DAST — OWASP ZAP"
   echo ""
   if [ ! -s "$ZAP" ]; then
@@ -129,7 +120,6 @@ fi
     echo ""
   fi
 
-  # ── SBOM detail ──
   echo "## 📋 SBOM — Component Inventory"
   echo ""
   if [ ! -s "$SBOM" ]; then
